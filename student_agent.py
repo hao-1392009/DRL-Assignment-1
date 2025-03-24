@@ -143,7 +143,7 @@ def get_action(obs):
 
     global action
 
-    epsilon = 0.01
+    epsilon = 0 if step_count <= 25 else 0.01
     state = get_state(obs, action)
     if state not in q_table.keys() or np.random.rand() < epsilon:
         action = Action.sample()
