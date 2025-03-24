@@ -35,13 +35,15 @@ can_be_destination = [True] * 4
 carrying = False
 num_visited = None
 
+step_count = -1
+
 def get_state(obs, prev_action, should_reset=False):
     # obs = taxi_row,            taxi_col,            self.stations[0][0], self.stations[0][1],
     #       self.stations[1][0], self.stations[1][1], self.stations[2][0], self.stations[2][1],
     #       self.stations[3][0], self.stations[3][1], obstacle_north,      obstacle_south,
     #       obstacle_east,       obstacle_west,       passenger_look,      destination_look
 
-    global stations, passenger_pos, can_be_passenger, destination_pos, can_be_destination, carrying, num_visited
+    global stations, passenger_pos, can_be_passenger, destination_pos, can_be_destination, carrying, num_visited, step_count
 
     taxi_row, taxi_col, _,_,_,_,_,_,_,_, obstacle_north, obstacle_south, \
         obstacle_east, obstacle_west, passenger_look, destination_look = obs
@@ -61,6 +63,8 @@ def get_state(obs, prev_action, should_reset=False):
         carrying = False
         num_visited = [[0 for j in range(10)] for i in range(10)]
         prev_action = None
+
+        step_count = -1
 
 
     rel_positions = [(r - taxi_row, c - taxi_col) for r, c in stations]
@@ -121,7 +125,9 @@ def get_state(obs, prev_action, should_reset=False):
     num_visited_e = num_visited[taxi_row][taxi_col + 1] // 3 if not obstacle_east else -1
     num_visited_w = num_visited[taxi_row][taxi_col - 1] // 3 if not obstacle_west else -1
 
-    return (target_rel, num_visited_n, num_visited_s, num_visited_e, num_visited_w, carrying)
+    step_count += 1
+
+    return target_rel, num_visited_n, num_visited_s, num_visited_e, num_visited_w, carrying
 
 action = None
 with open("q_table.pkl", "rb") as f:
@@ -137,8 +143,9 @@ def get_action(obs):
 
     global action
 
+    epsilon = 0 if step_count <= 25 else 0.1
     state = get_state(obs, action)
-    if state not in q_table.keys() or np.random.rand() < 0.1:
+    if state not in q_table.keys() or np.random.rand() < epsilon:
         action = Action.sample()
     else:
         action = np.argmax(q_table[state])
